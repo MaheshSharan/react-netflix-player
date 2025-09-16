@@ -33,14 +33,15 @@ export const useHLS = ({
   onSubtitleTracksLoaded,
   onError
 }: UseHLSProps) => {
-  const hlsRef = useRef<any>(null);
+  const hlsRef = useRef<InstanceType<typeof HlsType> | null>(null as any);
 
   const isHLSSupported = useCallback(() => {
     return HlsType.isSupported();
   }, []);
 
   const isHLSUrl = useCallback((url: string) => {
-    return url.includes('.m3u8') || url.includes('m3u8');
+    // Match .m3u8 optionally with query/hash, case-insensitive
+    return /\.m3u8(\?.*)?(#.*)?$/i.test(url);
   }, []);
 
   const initializeHLS = useCallback(() => {
@@ -122,22 +123,22 @@ export const useHLS = ({
 
   const setQualityLevel = useCallback((level: number) => {
     if (hlsRef.current) {
-      hlsRef.current.currentLevel = level;
+      (hlsRef.current as any).currentLevel = level;
     }
   }, []);
 
   const setSubtitleTrack = useCallback((trackId: number) => {
     if (hlsRef.current) {
-      hlsRef.current.subtitleTrack = trackId;
+      (hlsRef.current as any).subtitleTrack = trackId;
     }
   }, []);
 
   const getCurrentLevel = useCallback(() => {
-    return hlsRef.current?.currentLevel ?? -1;
+    return (hlsRef.current as any)?.currentLevel ?? -1;
   }, []);
 
   const getCurrentSubtitleTrack = useCallback(() => {
-    return hlsRef.current?.subtitleTrack ?? -1;
+    return (hlsRef.current as any)?.subtitleTrack ?? -1;
   }, []);
 
   useEffect(() => {

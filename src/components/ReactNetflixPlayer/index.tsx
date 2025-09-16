@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, SyntheticEvent } from 'react';
-import i18n from 'i18next';
+import { createInstance } from 'i18next';
 import { useTranslation, initReactI18next } from 'react-i18next';
 import {
   FaUndoAlt,
@@ -36,6 +36,7 @@ import {
 import translations from '../../i18n';
 import { useHLS, HLSQualityLevel, HLSSubtitleTrack } from './hooks/useHLS';
 
+const i18n = createInstance();
 i18n.use(initReactI18next).init({
   resources: translations,
   lng: 'pt',
@@ -142,7 +143,7 @@ export default function ReactNetflixPlayer({
   dataNext = {} as IDataNext,
   reprodutionList = [],
   qualities = [],
-  onChangeQuality = [] as any,
+  onChangeQuality = undefined,
   subtitleTracks = [],
   onChangeSubtitle = undefined,
   onHLSError = undefined,
@@ -175,6 +176,7 @@ export default function ReactNetflixPlayer({
   const [controlBackEnd, setControlBackEnd] = useState(false);
   const [fullScreen, setFullScreen] = useState(false);
   const [volume, setVolume] = useState(100);
+  const [previousVolume, setPreviousVolume] = useState<number>(100);
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState(false);
   const [waitingBuffer, setWaitingBuffer] = useState(false);
@@ -196,40 +198,11 @@ export default function ReactNetflixPlayer({
   const [currentQualityLevel, setCurrentQualityLevel] = useState<number>(-1);
   const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<number>(-1);
 
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { i18n });
 
-  // HLS integration
-  const {
-    isHLSStream,
-    isHLSSupported,
-    setQualityLevel,
-    setSubtitleTrack,
-    getCurrentLevel,
-    getCurrentSubtitleTrack,
-  } = useHLS({
-    videoElement: videoComponent.current,
-    src,
-    onQualityLevelsLoaded: (levels) => {
-      setHlsQualityLevels(levels);
-      setCurrentQualityLevel(getCurrentLevel());
-    },
-    onSubtitleTracksLoaded: (tracks) => {
-      setHlsSubtitleTracks(tracks);
-      setCurrentSubtitleTrack(getCurrentSubtitleTrack());
-      if (onChangeSubtitle) {
-        onChangeSubtitle(getCurrentSubtitleTrack());
-      }
-    },
-    onError: (error) => {
-      console.error('HLS Error in player:', error);
-      if (onHLSError) {
-        onHLSError(error);
-      }
-      if (onErrorVideo) {
-        onErrorVideo();
-      }
-    }
-  });
+  useEffect(() => {
+    i18n.changeLanguage(playerLanguage as any);
+  }, [playerLanguage]);
 
   // const [, setActualBuffer] = useState({
   //   index: 0,
@@ -419,9 +392,18 @@ export default function ReactNetflixPlayer({
 
   const setMuttedAction = (value: boolean) => {
     if (videoComponent.current) {
-      setMuted(value);
+      if (value) {
+        setPreviousVolume(volume);
+        setVolumeAction(0);
+        videoComponent.current.muted = true;
+        setMuted(true);
+      } else {
+        const restored = previousVolume > 0 ? previousVolume : 100;
+        setVolumeAction(restored);
+        videoComponent.current.muted = false;
+        setMuted(false);
+      }
       setShowControlVolume(false);
-      videoComponent.current.muted = value;
     }
   };
 
@@ -589,13 +571,13 @@ export default function ReactNetflixPlayer({
 
   useEffect(() => {
     document.addEventListener('keydown', getKeyBoardInteration, false);
-    playerElement.current && playerElement.current.addEventListener('fullscreenchange', setStateFullScreen, false);
+    const el = playerElement.current;
+    el && el.addEventListener('fullscreenchange', setStateFullScreen, false);
+    return () => {
+      document.removeEventListener('keydown', getKeyBoardInteration, false);
+      el && el.removeEventListener('fullscreenchange', setStateFullScreen, false);
+    };
   }, []);
-
-  // When changes happen in fullscreen document, teh state of fullscreen is changed
-  useEffect(() => {
-    setStateFullScreen();
-  }, [document.fullscreenElement]);
 
   function renderLoading() {
     return (
@@ -660,9 +642,9 @@ export default function ReactNetflixPlayer({
                   <p>{t('tryAccessingOtherQuality', { lng: playerLanguage })}</p>
                   <div className="links-error">
                     {qualities.map(item => (
-                      <div onClick={() => onChangeQuality(item.id)}>
+                      <div onClick={() => onChangeQuality && onChangeQuality(item.id)}>
                         {item.prefix && <span>HD</span>}
-                        <span>{item.nome}</span>
+                        <span>{(item as any).name || item.nome}</span>
                         {item.playing && <FiX />}
                       </div>
                     ))}
@@ -880,7 +862,7 @@ export default function ReactNetflixPlayer({
                           >
                             <div className="bold">
                               <span style={{ marginRight: 15 }}>{index + 1}</span>
-                              {item.nome}
+                              {(item as any).name || item.nome}
                             </div>
 
                             {item.percent && <div className="percent" />}
@@ -919,11 +901,11 @@ export default function ReactNetflixPlayer({
                               key={`legacy-${item.id}`}
                               onClick={() => {
                                 setShowQuality(false);
-                                onChangeQuality(item.id);
+                                onChangeQuality && onChangeQuality(item.id);
                               }}
                             >
                               {item.prefix && <span>HD</span>}
-                              <span>{item.nome}</span>
+                              <span>{(item as any).name || item.nome}</span>
                               {item.playing && <FiCheck />}
                             </div>
                           ))}
