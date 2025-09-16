@@ -729,3 +729,55 @@ export const ItemListQuality = styled(ItemControllBar)`
     }
   }
 `;
+
+export const ItemListSubtitles = styled(ItemControllBar)`
+  max-width: 250px;
+  min-width: 250px;
+
+  & > div:first-child {
+    font-size: 14px;
+    background: #222222;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .title {
+      padding: 10px;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
+    }
+
+    div:not(.title) {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      cursor: pointer;
+
+      &:hover {
+        background: #333;
+      }
+
+      .subtitle-info {
+        display: flex;
+        flex-direction: column;
+        margin-right: auto;
+
+        .subtitle-name {
+          font-weight: bold;
+        }
+
+        .subtitle-lang {
+          font-size: 12px;
+          color: #ccc;
+        }
+      }
+
+      svg {
+        color: #f78b28;
+        font-size: 1.2em;
+        margin-left: auto;
+      }
+    }
+  }
+`;

@@ -8,6 +8,8 @@ const ptBr = {
     nextEpisode: 'Próximo Episódio',
     playlist: 'Lista de Reprodução',
     playError: 'Ocorreu um erro ao tentar reproduzir este vídeo -_-',
+    subtitles: 'Legendas',
+    off: 'Desligado',
   },
 };
 
