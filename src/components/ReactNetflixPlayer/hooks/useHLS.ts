@@ -63,7 +63,7 @@ export const useHLS = ({
     // Handle HLS events
     hls.on(HlsType.Events.MANIFEST_PARSED, () => {
       // Extract quality levels
-      const levels: HLSQualityLevel[] = hls.levels.map((level, index) => ({
+      const levels: HLSQualityLevel[] = hls.levels.map((level: any, index: number) => ({
         height: level.height,
         width: level.width,
         bitrate: level.bitrate,
@@ -78,7 +78,7 @@ export const useHLS = ({
 
     hls.on(HlsType.Events.SUBTITLE_TRACKS_UPDATED, () => {
       // Extract subtitle tracks
-      const tracks: HLSSubtitleTrack[] = hls.subtitleTracks.map((track, index) => ({
+      const tracks: HLSSubtitleTrack[] = hls.subtitleTracks.map((track: any, index: number) => ({
         id: index,
         name: track.name || `Track ${index + 1}`,
         lang: track.lang || 'unknown',
@@ -90,7 +90,7 @@ export const useHLS = ({
       }
     });
 
-    hls.on(HlsType.Events.ERROR, (event, data) => {
+    hls.on(HlsType.Events.ERROR, (event: any, data: any) => {
       console.error('HLS Error:', data);
       if (onError) {
         onError(data);
