@@ -204,6 +204,32 @@ export default function ReactNetflixPlayer({
     i18n.changeLanguage(playerLanguage as any);
   }, [playerLanguage]);
 
+  // HLS integration API (single hook instance)
+  const hlsApi = useHLS({
+    videoElement: videoComponent.current,
+    src,
+    onQualityLevelsLoaded: (levels) => {
+      setHlsQualityLevels(levels);
+      setCurrentQualityLevel(hlsApi.getCurrentLevel());
+    },
+    onSubtitleTracksLoaded: (tracks) => {
+      setHlsSubtitleTracks(tracks);
+      setCurrentSubtitleTrack(hlsApi.getCurrentSubtitleTrack());
+      if (onChangeSubtitle) {
+        onChangeSubtitle(hlsApi.getCurrentSubtitleTrack());
+      }
+    },
+    onError: (error) => {
+      console.error('HLS Error in player:', error);
+      if (onHLSError) {
+        onHLSError(error);
+      }
+      if (onErrorVideo) {
+        onErrorVideo();
+      }
+    }
+  });
+
   // const [, setActualBuffer] = useState({
   //   index: 0,
   //   start: 0,
@@ -521,8 +547,8 @@ export default function ReactNetflixPlayer({
   };
 
   const onChangeHLSQuality = (levelIndex: number) => {
-    if (isHLSStream) {
-      setQualityLevel(levelIndex);
+    if (hlsApi.isHLSStream) {
+      hlsApi.setQualityLevel(levelIndex);
       setCurrentQualityLevel(levelIndex);
     } else {
       // Fallback to original quality change if provided
@@ -534,8 +560,8 @@ export default function ReactNetflixPlayer({
   };
 
   const onChangeHLSSubtitle = (trackId: number) => {
-    if (isHLSStream) {
-      setSubtitleTrack(trackId);
+    if (hlsApi.isHLSStream) {
+      hlsApi.setSubtitleTrack(trackId);
       setCurrentSubtitleTrack(trackId);
     }
     if (onChangeSubtitle) {
@@ -676,7 +702,7 @@ export default function ReactNetflixPlayer({
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video
         ref={videoComponent}
-        src={!isHLSStream ? src : undefined}
+        src={!hlsApi.isHLSStream ? src : undefined}
         controls={false}
         onCanPlay={() => startVideo()}
         onTimeUpdate={timeUpdate}
@@ -884,7 +910,7 @@ export default function ReactNetflixPlayer({
                     <ItemListQuality>
                       <div>
                         {/* HLS Quality Levels */}
-                        {isHLSStream && hlsQualityLevels.map((level, index) => (
+                        {hlsApi.isHLSStream && hlsQualityLevels.map((level, index) => (
                           <div
                             key={`hls-${index}`}
                             onClick={() => onChangeHLSQuality(index)}
@@ -895,7 +921,7 @@ export default function ReactNetflixPlayer({
                         ))}
                         
                         {/* Legacy Quality Options */}
-                        {!isHLSStream && qualities &&
+                        {!hlsApi.isHLSStream && qualities &&
                           qualities.map(item => (
                             <div
                               key={`legacy-${item.id}`}
@@ -935,7 +961,7 @@ export default function ReactNetflixPlayer({
                         </div>
                         
                         {/* HLS Subtitle Tracks */}
-                        {isHLSStream && hlsSubtitleTracks.map((track, index) => (
+                        {hlsApi.isHLSStream && hlsSubtitleTracks.map((track, index) => (
                           <div
                             key={`hls-sub-${index}`}
                             onClick={() => onChangeHLSSubtitle(index)}
@@ -949,7 +975,7 @@ export default function ReactNetflixPlayer({
                         ))}
                         
                         {/* Legacy Subtitle Tracks */}
-                        {!isHLSStream && subtitleTracks && subtitleTracks.map((track) => (
+                        {!hlsApi.isHLSStream && subtitleTracks && subtitleTracks.map((track) => (
                           <div
                             key={`legacy-sub-${track.id}`}
                             onClick={() => onChangeHLSSubtitle(track.id)}

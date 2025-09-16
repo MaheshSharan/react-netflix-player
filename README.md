@@ -22,10 +22,11 @@
  <a href="#-features">Features</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
  <a href="#-technologies">Technologies</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
  <a href="#-how-to-use">How to Use</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+ <a href="#-hls-streams">HLS Streams</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+ <a href="#-language">Language</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
  <a href="#-props">Props</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
- <a href="#-styling">Styling</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
  <a href="#-events">Events</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
- <a href="#-modes">Modes</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+ <a href="#-playlist-and-quality">Playlist & Quality</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
  <a href="#-controls">Controls</a>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
  <a href="#-contribute">Contribute</a>
 </p>
@@ -69,11 +70,43 @@ yarn add react-netflix-player
 
 Import into your component:
 
-```js
-import { ReactNetflixPlayer } from "react-netflix-player";
+```tsx
+import ReactNetflixPlayer, { LanguagesPlayer } from 'react-netflix-player';
 
-<ReactNetflixPlayer />
+export default function Demo() {
+  return (
+    <div style={{ width: 800, height: 450 }}>
+      <ReactNetflixPlayer
+        src="/video.mp4"
+        title="My Video"
+        subTitle="Description"
+        autoPlay={false}
+        playerLanguage={LanguagesPlayer.en}
+      />
+    </div>
+  );
+}
 ```
+
+### 📡 HLS Streams
+
+- The player auto-detects `.m3u8` URLs and uses `hls.js` when supported.
+- Quality and subtitle menus are populated from HLS levels and tracks.
+
+```tsx
+<ReactNetflixPlayer
+  src="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+  autoPlay
+  title="Sample HLS"
+  playerLanguage={LanguagesPlayer.en}
+  onHLSError={(err) => console.log('HLS error', err)}
+/>
+```
+
+### 🌐 Language
+
+- Set UI language via `playerLanguage`:
+  - `LanguagesPlayer.pt` or `LanguagesPlayer.en`
 
 ### 📃 Props
 
@@ -143,18 +176,23 @@ Initial playback speed (default: 1).
 
 Next video information.
 
-#### `reprodutionList: { id: number, playing: boolean }[]`
+#### `reprodutionList: { id: number | string, name: string, playing: boolean, percent?: number }[]`
 
-Playlist items.
+Playlist items. `name` is preferred (legacy `nome` is still supported).
+
+#### `qualities: { id: string | number, prefix?: string, nome?: string, name?: string, playing: boolean }[]`
+
+Legacy quality options (non-HLS). Use with `onChangeQuality`.
 
 #### Event Handlers
 
 * `onCanPlay()` – when video is ready to play
-* `onTimeUpdate()` – called on time updates
+* `onTimeUpdate(e)` – called on time updates
 * `onEnded()` – video ended
 * `onErrorVideo()` – error in playback
+* `onHLSError(error)` – HLS-specific error callback
 * `onNextClick()` – next video clicked
-* `onClickItemListReproduction(id)` – playlist item clicked
+* `onClickItemListReproduction(id, playing)` – playlist item clicked
 * `onCrossClick()` – player closed
 
 ### 💅 Styling
@@ -170,16 +208,17 @@ Playlist items.
 * **StandBy:** Active when paused with no activity.
 * **Loading:** Active while buffering.
 
+### 🧾 Playlist and Quality
+
+- Playlist: pass `reprodutionList` to render the side menu. The current item should have `playing: true`.
+- Quality:
+  - HLS: levels are detected automatically and shown in the settings menu.
+  - Legacy (non-HLS): pass `qualities` and handle `onChangeQuality(id)`.
+
 ### 🕹 Controls
 
 * **Double Click:** Fullscreen toggle
 * **Space:** Play/Pause toggle
-
-### 🔎 Modes
-
-* **Initial Loading** – shows loader until video is ready
-* **Controls** – displayed during playback
-* **StandBy** – paused with info overlay
 
 ### 👩‍💻 Contribute
 
@@ -188,13 +227,13 @@ Clone the repo:
 ```bash
 git clone https://github.com/Lucasmg37/react-netflix-player
 cd react-netflix-player
-yarn
+npm install
 ```
 
 Build:
 
 ```bash
-yarn run build
+npm run build
 ```
 
 The final build will be in `dist/`.
@@ -208,7 +247,7 @@ The final build will be in `dist/`.
 
 ### ✌️ Contributors
 
-| [<img src="https://avatars3.githubusercontent.com/u/38473739?s=115" width="115"><br><small>@Prophetaa</small>](https://github.com/Prophetaa) | [<img src="https://avatars0.githubusercontent.com/u/32423942?s=115"><br><sub>@lfoliveir4</sub>](https://github.com/lfoliveir4) | [<img src="https://avatars0.githubusercontent.com/u/49363242?s=115"><br><sub>@romilodev</sub>](https://github.com/romilodev) | [<img src="https://avatars0.githubusercontent.com/u/1103336?s=115"><br><sub>@ridhwaans</sub>](https://github.com/ridhwaans) |
+| [<img src="https://avatars3.githubusercontent.com/u/38473739?s=115" width="115"><br><small>@Prophetaa</small>](https://github.com/Prophetaa) | [<img src="https://avatars0.githubusercontent.com/u/32423942?s=115" width="115"><br><sub>@lfoliveir4</sub>](https://github.com/lfoliveir4) | [<img src="https://avatars0.githubusercontent.com/u/49363242?s=115" width="115"><br><sub>@romilodev</sub>](https://github.com/romilodev) | [<img src="https://avatars0.githubusercontent.com/u/1103336?s=115" width="115"><br><sub>@ridhwaans</sub>](https://github.com/ridhwaans) |
 | :------------------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------: | :--------------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------: |
 
 ### 📝 License
