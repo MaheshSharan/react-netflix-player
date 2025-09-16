@@ -16,6 +16,7 @@ import {
   FaClone,
   FaCompress,
   FaRedoAlt,
+  FaClosedCaptioning,
 } from 'react-icons/fa';
 import { FiCheck, FiX } from 'react-icons/fi';
 import {
@@ -30,8 +31,10 @@ import {
   ItemNext,
   ItemListReproduction,
   ItemListQuality,
+  ItemListSubtitles,
 } from './styles';
 import translations from '../../i18n';
+import { useHLS, HLSQualityLevel, HLSSubtitleTrack } from './hooks/useHLS';
 
 i18n.use(initReactI18next).init({
   resources: translations,
@@ -58,6 +61,13 @@ export interface IQualities {
   nome: string;
   playing: boolean;
   id: string | number;
+}
+
+export interface ISubtitleTrack {
+  id: number;
+  name: string;
+  lang: string;
+  enabled: boolean;
 }
 
 
@@ -102,6 +112,9 @@ export interface IProps {
   reprodutionList?: IItemReproduction[];
   qualities?: IQualities[];
   onChangeQuality?: (quality: string | number) => void;
+  subtitleTracks?: ISubtitleTrack[];
+  onChangeSubtitle?: (trackId: number) => void;
+  onHLSError?: (error: any) => void;
 }
 
 export default function ReactNetflixPlayer({
@@ -130,6 +143,9 @@ export default function ReactNetflixPlayer({
   reprodutionList = [],
   qualities = [],
   onChangeQuality = [] as any,
+  subtitleTracks = [],
+  onChangeSubtitle = undefined,
+  onHLSError = undefined,
   playbackRateEnable = true,
   overlayEnabled = true,
   autoControllCloseEnabled = true,
@@ -172,8 +188,48 @@ export default function ReactNetflixPlayer({
   const [showDataNext, setShowDataNext] = useState(false);
   const [showPlaybackRate, setShowPlaybackRate] = useState(false);
   const [showReproductionList, setShowReproductionList] = useState(false);
+  const [showSubtitles, setShowSubtitles] = useState(false);
+
+  // HLS states
+  const [hlsQualityLevels, setHlsQualityLevels] = useState<HLSQualityLevel[]>([]);
+  const [hlsSubtitleTracks, setHlsSubtitleTracks] = useState<HLSSubtitleTrack[]>([]);
+  const [currentQualityLevel, setCurrentQualityLevel] = useState<number>(-1);
+  const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<number>(-1);
 
   const { t } = useTranslation();
+
+  // HLS integration
+  const {
+    isHLSStream,
+    isHLSSupported,
+    setQualityLevel,
+    setSubtitleTrack,
+    getCurrentLevel,
+    getCurrentSubtitleTrack,
+  } = useHLS({
+    videoElement: videoComponent.current,
+    src,
+    onQualityLevelsLoaded: (levels) => {
+      setHlsQualityLevels(levels);
+      setCurrentQualityLevel(getCurrentLevel());
+    },
+    onSubtitleTracksLoaded: (tracks) => {
+      setHlsSubtitleTracks(tracks);
+      setCurrentSubtitleTrack(getCurrentSubtitleTrack());
+      if (onChangeSubtitle) {
+        onChangeSubtitle(getCurrentSubtitleTrack());
+      }
+    },
+    onError: (error) => {
+      console.error('HLS Error in player:', error);
+      if (onHLSError) {
+        onHLSError(error);
+      }
+      if (onErrorVideo) {
+        onErrorVideo();
+      }
+    }
+  });
 
   // const [, setActualBuffer] = useState({
   //   index: 0,
@@ -482,6 +538,30 @@ export default function ReactNetflixPlayer({
     }
   };
 
+  const onChangeHLSQuality = (levelIndex: number) => {
+    if (isHLSStream) {
+      setQualityLevel(levelIndex);
+      setCurrentQualityLevel(levelIndex);
+    } else {
+      // Fallback to original quality change if provided
+      if (onChangeQuality) {
+        onChangeQuality(levelIndex);
+      }
+    }
+    setShowQuality(false);
+  };
+
+  const onChangeHLSSubtitle = (trackId: number) => {
+    if (isHLSStream) {
+      setSubtitleTrack(trackId);
+      setCurrentSubtitleTrack(trackId);
+    }
+    if (onChangeSubtitle) {
+      onChangeSubtitle(trackId);
+    }
+    setShowSubtitles(false);
+  };
+
   useEffect(() => {
     if (showReproductionList) {
       scrollToSelected();
@@ -614,7 +694,7 @@ export default function ReactNetflixPlayer({
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video
         ref={videoComponent}
-        src={src}
+        src={!isHLSStream ? src : undefined}
         controls={false}
         onCanPlay={() => startVideo()}
         onTimeUpdate={timeUpdate}
@@ -816,21 +896,33 @@ export default function ReactNetflixPlayer({
                 )}
               </div>
 
-              {qualities && qualities.length > 1 && (
+              {((qualities && qualities.length > 1) || hlsQualityLevels.length > 1) && (
                 <div className="item-control" onMouseLeave={() => setShowQuality(false)}>
                   {showQuality === true && (
                     <ItemListQuality>
                       <div>
-                        {qualities &&
+                        {/* HLS Quality Levels */}
+                        {isHLSStream && hlsQualityLevels.map((level, index) => (
+                          <div
+                            key={`hls-${index}`}
+                            onClick={() => onChangeHLSQuality(index)}
+                          >
+                            <span>{level.name}</span>
+                            {currentQualityLevel === index && <FiCheck />}
+                          </div>
+                        ))}
+                        
+                        {/* Legacy Quality Options */}
+                        {!isHLSStream && qualities &&
                           qualities.map(item => (
                             <div
+                              key={`legacy-${item.id}`}
                               onClick={() => {
                                 setShowQuality(false);
                                 onChangeQuality(item.id);
                               }}
                             >
                               {item.prefix && <span>HD</span>}
-
                               <span>{item.nome}</span>
                               {item.playing && <FiCheck />}
                             </div>
@@ -841,6 +933,58 @@ export default function ReactNetflixPlayer({
                   )}
 
                   <FaCog onMouseEnter={() => setShowQuality(true)} />
+                </div>
+              )}
+
+              {/* Subtitle Menu */}
+              {(hlsSubtitleTracks.length > 0 || (subtitleTracks && subtitleTracks.length > 0)) && (
+                <div className="item-control" onMouseLeave={() => setShowSubtitles(false)}>
+                  {showSubtitles === true && (
+                    <ItemListSubtitles>
+                      <div>
+                        <div className="title">{t('subtitles', { lng: playerLanguage })}</div>
+                        
+                        {/* Off option */}
+                        <div onClick={() => onChangeHLSSubtitle(-1)}>
+                          <div className="subtitle-info">
+                            <div className="subtitle-name">{t('off', { lng: playerLanguage })}</div>
+                          </div>
+                          {currentSubtitleTrack === -1 && <FiCheck />}
+                        </div>
+                        
+                        {/* HLS Subtitle Tracks */}
+                        {isHLSStream && hlsSubtitleTracks.map((track, index) => (
+                          <div
+                            key={`hls-sub-${index}`}
+                            onClick={() => onChangeHLSSubtitle(index)}
+                          >
+                            <div className="subtitle-info">
+                              <div className="subtitle-name">{track.name}</div>
+                              <div className="subtitle-lang">{track.lang}</div>
+                            </div>
+                            {currentSubtitleTrack === index && <FiCheck />}
+                          </div>
+                        ))}
+                        
+                        {/* Legacy Subtitle Tracks */}
+                        {!isHLSStream && subtitleTracks && subtitleTracks.map((track) => (
+                          <div
+                            key={`legacy-sub-${track.id}`}
+                            onClick={() => onChangeHLSSubtitle(track.id)}
+                          >
+                            <div className="subtitle-info">
+                              <div className="subtitle-name">{track.name}</div>
+                              <div className="subtitle-lang">{track.lang}</div>
+                            </div>
+                            {track.enabled && <FiCheck />}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="box-connector" />
+                    </ItemListSubtitles>
+                  )}
+
+                  <FaClosedCaptioning onMouseEnter={() => setShowSubtitles(true)} />
                 </div>
               )}
 

@@ -8,6 +8,8 @@ const enUs = {
     nextEpisode: 'Next Episode',
     playlist: 'Playlist',
     playError: 'Something went wrong playing this video',
+    subtitles: 'Subtitles',
+    off: 'Off',
   },
 };
 
