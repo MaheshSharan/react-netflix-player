@@ -1,4 +1,4 @@
-# ⚛ React Netflix Player
+# React Netflix Player
 
 > **Note:** This project was originally developed by [Lucas Dias](https://www.linkedin.com/in/lucas-junior/). I am updating and maintaining this repository according to my needs, while keeping the core vision and credits intact.
 
@@ -63,9 +63,9 @@ Code Quality:
 Install with:
 
 ```bash
-npm install react-netflix-player
+npm i @maheshsharan/react-netflix-player
 # or
-yarn add react-netflix-player
+yarn add maheshsharan/react-netflix-player
 ```
 
 Import into your component:
@@ -225,7 +225,7 @@ Legacy quality options (non-HLS). Use with `onChangeQuality`.
 Clone the repo:
 
 ```bash
-git clone https://github.com/Lucasmg37/react-netflix-player
+git clone https://github.com/MaheshSharan/react-netflix-player
 cd react-netflix-player
 npm install
 ```
